@@ -415,7 +415,9 @@
   let activeIndex = -1;
 
   // Fetch streams
-  const apiUrl = `https://webstreamr.hayd.uk/stream/${encodeURIComponent(type)}/${encodeURIComponent(id)}.js`;
+  // Ensure IMDB ID has the "tt" prefix
+  const imdbId = id.startsWith('tt') ? id : 'tt' + id;
+  const apiUrl = `https://webstreamr.hayd.uk/stream/${encodeURIComponent(type)}/${encodeURIComponent(imdbId)}.json`;
 
   fetch(apiUrl)
     .then(function (res) {
