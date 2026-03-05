@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamPlay</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0d0d0f;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .logo {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.4rem;
+      background: linear-gradient(135deg, #e50914, #ff6b35);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline {
+      color: #777;
+      font-size: 0.95rem;
+      margin-bottom: 3rem;
+    }
+
+    .search-card {
+      background: #18181b;
+      border: 1px solid #2a2a2e;
+      border-radius: 16px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .search-card h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #fff;
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #999;
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: #0d0d0f;
+      border: 1px solid #2a2a2e;
+      border-radius: 10px;
+      color: #e8e8e8;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+      outline: none;
+      appearance: none;
+    }
+
+    input[type="text"]:focus, select:focus {
+      border-color: #e50914;
+    }
+
+    input::placeholder { color: #444; }
+
+    .btn-play {
+      width: 100%;
+      padding: 0.85rem;
+      background: linear-gradient(135deg, #e50914, #c20813);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 0.8rem;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.03em;
+    }
+
+    .btn-play:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-play:active { transform: translateY(0); }
+
+    .examples {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #2a2a2e;
+    }
+
+    .examples h3 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      margin-bottom: 0.8rem;
+    }
+
+    .example-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .chip {
+      padding: 0.35rem 0.75rem;
+      background: #0d0d0f;
+      border: 1px solid #2a2a2e;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      color: #bbb;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      text-decoration: none;
+    }
+
+    .chip:hover { border-color: #e50914; color: #fff; }
+
+    .footer {
+      margin-top: 3rem;
+      color: #444;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">StreamPlay</div>
+  <p class="tagline">Stream any movie or series instantly</p>
+
+  <div class="search-card">
+    <h2>Watch Now</h2>
+    <form id="watchForm">
+      <div class="form-group">
+        <label for="imdbId">IMDB ID</label>
+        <input type="text" id="imdbId" placeholder="e.g. tt10886166" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="form-group">
+        <label for="mediaType">Type</label>
+        <select id="mediaType">
+          <option value="movie">Movie</option>
+          <option value="series">Series</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-play">▶ Play</button>
+    </form>
+
+    <div class="examples">
+      <h3>Quick Examples</h3>
+      <div class="example-chips">
+        <a class="chip" href="play.html?type=movie&id=tt10886166">365 Days (2020)</a>
+        <a class="chip" href="play.html?type=movie&id=tt1375666">Inception</a>
+        <a class="chip" href="play.html?type=movie&id=tt0111161">Shawshank</a>
+        <a class="chip" href="play.html?type=series&id=tt0944947">Game of Thrones</a>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer">Powered by WebStreamr</p>
+
+  <script>
+    document.getElementById('watchForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const id = document.getElementById('imdbId').value.trim();
+      const type = document.getElementById('mediaType').value;
+      if (!id) return;
+      window.location.href = `play.html?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`;
+    });
+  </script>
+</body>
+</html>

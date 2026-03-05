@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamPlay – Player</title>
+
+  <!-- Plyr CSS -->
+  <link rel="stylesheet" href="vendor/plyr.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #e50914;
+      --bg: #0d0d0f;
+      --surface: #18181b;
+      --border: #2a2a2e;
+      --text: #e8e8e8;
+      --muted: #888;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    /* ─── Layout ─────────────────────────────────────────── */
+    .page {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1.5rem;
+      background: rgba(13,13,15,0.95);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #e50914, #ff6b35);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    .media-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    /* ─── Player section ────────────────────────────────── */
+    .player-section {
+      width: 100%;
+      background: #000;
+      position: relative;
+    }
+
+    .player-wrapper {
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      position: relative;
+    }
+
+    #videoWrapper {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Overlay states */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.85);
+      z-index: 10;
+    }
+
+    .overlay.hidden { display: none; }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .overlay p {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .error-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .error-msg {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+
+    .error-sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    /* ─── Controls bar ──────────────────────────────────── */
+    .controls-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .controls-bar .label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .source-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      flex: 1;
+    }
+
+    .source-btn {
+      padding: 0.4rem 0.85rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: #ccc;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .source-btn:hover {
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .source-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .quality-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    .source-btn.active .quality-badge {
+      background: rgba(255,255,255,0.25);
+    }
+
+    /* ─── Info section ──────────────────────────────────── */
+    .info-section {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      width: 100%;
+    }
+
+    .stream-info {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .stream-info h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+    }
+
+    .stream-title {
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .stream-meta {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .meta-pill {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+    }
+
+    /* ─── Plyr overrides ────────────────────────────────── */
+    .plyr--video {
+      height: 100%;
+      width: 100%;
+    }
+
+    .plyr__control--overlaid {
+      background: var(--accent) !important;
+    }
+
+    .plyr__control--overlaid:hover {
+      background: #c20813 !important;
+    }
+
+    .plyr--full-ui input[type=range] {
+      color: var(--accent);
+    }
+
+    .plyr__progress__container input[type=range],
+    .plyr__volume input[type=range] {
+      color: var(--accent);
+    }
+
+    /* ─── Responsive ────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .topbar { padding: 0.75rem 1rem; }
+      .controls-bar { padding: 0.65rem 1rem; }
+      .info-section { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a class="logo" href="index.html">StreamPlay</a>
+    <a class="back-btn" href="index.html">← Back</a>
+    <span class="media-title" id="mediaTitle">Loading…</span>
+  </header>
+
+  <!-- Player section -->
+  <div class="player-section">
+    <div class="player-wrapper">
+      <div id="videoWrapper">
+        <video id="player" playsinline crossorigin="anonymous"></video>
+
+        <!-- Loading overlay -->
+        <div class="overlay" id="loadingOverlay">
+          <div class="spinner"></div>
+          <p>Fetching streams…</p>
+        </div>
+
+        <!-- Error overlay -->
+        <div class="overlay hidden" id="errorOverlay">
+          <div class="error-icon">⚠️</div>
+          <div class="error-msg" id="errorMsg">Could not load streams</div>
+          <div class="error-sub" id="errorSub">Please check the IMDB ID or try again later</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Source selector -->
+  <div class="controls-bar" id="controlsBar" style="display:none">
+    <span class="label">Source</span>
+    <div class="source-list" id="sourceList"></div>
+  </div>
+
+  <!-- Stream info -->
+  <div class="info-section" id="infoSection" style="display:none">
+    <div class="stream-info">
+      <h3>Now Playing</h3>
+      <div class="stream-title" id="streamTitle"></div>
+      <div class="stream-meta" id="streamMeta"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- HLS.js for m3u8 streams -->
+<script src="vendor/hls.min.js"></script>
+<!-- Plyr -->
+<script src="vendor/plyr.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Helpers ─────────────────────────────────────────────────
+  function getParams() {
+    const sp = new URLSearchParams(window.location.search);
+    // Also support /play/tt1234567 path format
+    const pathMatch = window.location.pathname.match(/\/play\/([^/?#]+)/);
+    return {
+      id:   sp.get('id')   || (pathMatch && pathMatch[1]) || '',
+      type: sp.get('type') || 'movie'
+    };
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes) return null;
+    const gb = bytes / 1e9;
+    return gb >= 1 ? gb.toFixed(2) + ' GB' : (bytes / 1e6).toFixed(0) + ' MB';
+  }
+
+  function extractQuality(name) {
+    const m = name.match(/\b(2160p|1080p|720p|480p|4K)\b/i);
+    return m ? m[1] : null;
+  }
+
+  function extractProvider(name) {
+    // e.g. "WebStreamr | Hayduk 🌐 🇺🇸 🇮🇳 1080p" → "WebStreamr | Hayduk"
+    const m = name.match(/^([^🌐]+)/);
+    return m ? m[1].trim().replace(/\s*\|?\s*$/, '') : name;
+  }
+
+  // ── Main ─────────────────────────────────────────────────────
+  const { id, type } = getParams();
+
+  if (!id) {
+    showError('No IMDB ID provided', 'Please go back and enter a valid IMDB ID.');
+    return;
+  }
+
+  document.title = `StreamPlay – ${id}`;
+  document.getElementById('mediaTitle').textContent = id;
+
+  // Initialise Plyr
+  const player = new Plyr('#player', {
+    iconUrl: 'vendor/plyr.svg',
+    controls: ['play-large', 'play', 'rewind', 'fast-forward', 'progress',
+               'current-time', 'duration', 'mute', 'volume', 'captions',
+               'settings', 'pip', 'airplay', 'fullscreen'],
+    settings: ['quality', 'speed'],
+    speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+    autoplay: false,
+    resetOnEnd: false,
+    invertTime: false,
+    toggleInvert: true,
+  });
+
+  let hlsInstance = null;
+  let streams     = [];
+  let activeIndex = -1;
+
+  // Fetch streams
+  const apiUrl = `https://webstreamr.hayd.uk/stream/${encodeURIComponent(type)}/${encodeURIComponent(id)}.js`;
+
+  fetch(apiUrl)
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function (data) {
+      streams = (data && Array.isArray(data.streams)) ? data.streams : [];
+      if (!streams.length) throw new Error('No streams available');
+      hideLoading();
+      buildSourceList(streams);
+      playStream(0);
+    })
+    .catch(function (err) {
+      console.error('Stream fetch error:', err);
+      showError('Could not load streams', err.message || 'Please try again later.');
+    });
+
+  // ── Source selector ──────────────────────────────────────────
+  function buildSourceList(streamList) {
+    const list = document.getElementById('sourceList');
+    list.innerHTML = '';
+
+    streamList.forEach(function (s, i) {
+      const quality  = extractQuality(s.name)  || '';
+      const provider = extractProvider(s.name) || 'Source ' + (i + 1);
+      const isHLS    = s.url && s.url.includes('.m3u8');
+
+      const btn = document.createElement('button');
+      btn.className = 'source-btn';
+      btn.dataset.index = i;
+      btn.innerHTML =
+        (isHLS ? '📡 ' : '🎬 ') +
+        provider +
+        (quality ? ` <span class="quality-badge">${quality}</span>` : '');
+      btn.addEventListener('click', function () { playStream(i); });
+      list.appendChild(btn);
+    });
+
+    document.getElementById('controlsBar').style.display = '';
+    document.getElementById('infoSection').style.display  = '';
+  }
+
+  function setActiveBtn(index) {
+    document.querySelectorAll('.source-btn').forEach(function (btn, i) {
+      btn.classList.toggle('active', i === index);
+    });
+  }
+
+  // ── Playback ─────────────────────────────────────────────────
+  function playStream(index) {
+    if (index < 0 || index >= streams.length) return;
+    activeIndex = index;
+    setActiveBtn(index);
+
+    const s   = streams[index];
+    const url = s.url;
+
+    updateInfo(s);
+
+    // Destroy previous HLS instance if any
+    if (hlsInstance) {
+      hlsInstance.destroy();
+      hlsInstance = null;
+    }
+
+    const video = document.querySelector('video#player');
+
+    if (url.includes('.m3u8') && Hls.isSupported()) {
+      hlsInstance = new Hls({ enableWorker: true });
+      hlsInstance.loadSource(url);
+      hlsInstance.attachMedia(video);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
+        player.play().catch(function () {});
+      });
+      hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+        if (data.fatal) {
+          console.error('HLS fatal error:', data);
+          tryNextSource(index);
+        }
+      });
+    } else if (url.includes('.m3u8') && video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS (Safari)
+      player.source = { type: 'video', sources: [{ src: url, type: 'application/x-mpegURL' }] };
+      player.play().catch(function () {});
+    } else {
+      // Direct video
+      player.source = {
+        type: 'video',
+        sources: [{ src: url, type: guessMime(url) }]
+      };
+      player.play().catch(function () {});
+    }
+  }
+
+  function tryNextSource(failedIndex) {
+    const next = failedIndex + 1;
+    if (next < streams.length) {
+      console.warn('Source ' + failedIndex + ' failed, trying source ' + next);
+      playStream(next);
+    } else {
+      showError('Playback failed', 'All sources failed. Try a different IMDB ID.');
+    }
+  }
+
+  function guessMime(url) {
+    if (url.includes('.mp4'))  return 'video/mp4';
+    if (url.includes('.webm')) return 'video/webm';
+    if (url.includes('.mkv'))  return 'video/x-matroska';
+    if (url.includes('.m3u8')) return 'application/x-mpegURL';
+    return 'video/mp4';
+  }
+
+  // ── Info panel ───────────────────────────────────────────────
+  function updateInfo(stream) {
+    const titleEl = document.getElementById('streamTitle');
+    const metaEl  = document.getElementById('streamMeta');
+
+    titleEl.textContent = stream.title || stream.name || '';
+
+    const pills = [];
+    const hints = stream.behaviorHints || {};
+
+    if (hints.videoSize) {
+      const size = formatBytes(hints.videoSize);
+      if (size) pills.push('💾 ' + size);
+    }
+
+    const quality = extractQuality(stream.name || '');
+    if (quality) pills.push('🎬 ' + quality);
+
+    if (hints.bingeGroup) {
+      // extract provider slug from bingeGroup
+      const parts = hints.bingeGroup.split('-');
+      if (parts.length > 1) pills.push('🔗 ' + parts[1]);
+    }
+
+    metaEl.innerHTML = pills.map(function (p) {
+      return '<span class="meta-pill">' + p + '</span>';
+    }).join('');
+  }
+
+  // ── UI helpers ───────────────────────────────────────────────
+  function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }
+
+  function showError(msg, sub) {
+    hideLoading();
+    const overlay = document.getElementById('errorOverlay');
+    overlay.classList.remove('hidden');
+    document.getElementById('errorMsg').textContent  = msg  || 'Error';
+    document.getElementById('errorSub').textContent  = sub  || '';
+    document.getElementById('mediaTitle').textContent = 'Error';
+  }
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamPlay</title>
+  <script>
+    // Support /play/{imdbId} URL format by redirecting to play.html with params.
+    // Extracts the last path segment as the IMDB ID.
+    (function () {
+      var path  = window.location.pathname;               // e.g. /play/tt10672993730
+      var parts = path.replace(/\/$/, '').split('/');
+      var id    = parts[parts.length - 1] || '';
+
+      var sp   = new URLSearchParams(window.location.search);
+      var type = sp.get('type') || 'movie';
+
+      if (id && /^tt\d+$/i.test(id)) {
+        // Valid IMDB id – redirect to the player
+        window.location.replace(
+          '../play.html?type=' + encodeURIComponent(type) +
+          '&id=' + encodeURIComponent(id)
+        );
+      } else {
+        // No valid id – go home
+        window.location.replace('../index.html');
+      }
+    })();
+  </script>
+</head>
+<body></body>
+</html>
